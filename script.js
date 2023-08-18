@@ -6,38 +6,38 @@
 
 // Data
 const account1 = {
-  owner: 'Jonas Schmedtmann',
-  movements: [200, 450, -400, 3000, -650, -130, 70, 1300],
+  owner: 'Amit Paz',
+  movements: [5000, 3200, 4200, 6969, -2500, -4000, -1000, 200],
   interestRate: 1.2, // %
-  pin: 1111,
+  pin: 2703,
 };
 
 const account2 = {
-  owner: 'Jessica Davis',
-  movements: [5000, 3400, -150, -790, -3210, -1000, 8500, -30],
+  owner: 'Matvei Stupachenko',
+  movements: [-1500, -300, -150, -790, -3210, -1000, 30, -30],
   interestRate: 1.5,
-  pin: 2222,
+  pin: 1101,
 };
 
 const account3 = {
-  owner: 'Steven Thomas Williams',
-  movements: [200, -200, 340, -300, -20, 50, 400, -460],
+  owner: 'Asif Sakazo',
+  movements: [2158920, 420, 69, -3000, -38000, -46999, -90000, -460],
   interestRate: 0.7,
-  pin: 3333,
+  pin: 1011,
 };
 
 const account4 = {
-  owner: 'Sarah Smith',
-  movements: [430, 1000, 700, 50, 90],
+  owner: 'Guy Brodesky',
+  movements: [420, 69, -6969, 420, 10],
   interestRate: 1,
-  pin: 4444,
+  pin: 406,
 };
 
 const account5 = {
   owner: 'Reem Assaf',
-  movements: [430, 1000, 700, 50, 90, 6969, 420, -1],
+  movements: [30000, -15000, 73, 544, -120, 300, 900, -30],
   interestRate: 3.5,
-  pin: 6969,
+  pin: 2607,
 };
 
 const accounts = [account1, account2, account3, account4, account5];
@@ -66,10 +66,14 @@ const inputTransferAmount = document.querySelector('.form__input--amount');
 const inputLoanAmount = document.querySelector('.form__input--loan-amount');
 const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
-
-const displayMovements = function (movements) {
+//displays movements from given account data
+const displayMovements = function (movements, sort = false) {
+  //clears existing data
   containerMovements.innerHTML = '';
-  movements.forEach(function (mov, i) {
+
+  const sorted = sort ? movements.slice(0).sort((a, b) => a - b) : movements;
+  //loops through data and inserts it into html template
+  sorted.forEach(function (mov, i) {
     const moveType = mov < 0 ? 'withdrawal' : 'deposit';
     const html = `
     <div class="movements__row">
@@ -83,11 +87,13 @@ const displayMovements = function (movements) {
   });
 };
 
-const displayBalance = function (movements) {
-  const balance = movements.reduce((sum, mov) => sum + mov, 0);
-  labelBalance.textContent = `${balance}€`;
+//calculates and displays the balance of the user.
+const displayBalance = function (acc) {
+  acc.balance = acc.movements.reduce((sum, mov) => sum + mov, 0);
+  labelBalance.textContent = `${acc.balance}€`;
 };
 
+//calculates deposits, withdrawals and interest and displays them in summary.
 const displaySummary = function (acc) {
   const deposits = acc.movements
     .filter(mov => mov > 0)
@@ -101,12 +107,20 @@ const displaySummary = function (acc) {
 
   const interest = acc.movements
     .filter(mov => mov > 0)
+    //each user has a different interest rate.
     .map(deposit => (deposit * acc.interestRate) / 100)
     .filter(deposit => deposit >= 1)
     .reduce((acc, deposit) => acc + deposit, 0);
   labelSumInterest.textContent = `${interest}€`;
 };
 
+const updateUI = function (acc) {
+  displayBalance(acc);
+  displayMovements(acc.movements);
+  displaySummary(acc);
+};
+
+//takes the full names of the account owner and creates a username.
 const createUserNames = function (accountsArr) {
   accountsArr.forEach(account => {
     account.username = account.owner
@@ -117,7 +131,10 @@ const createUserNames = function (accountsArr) {
   });
 };
 createUserNames(accounts);
+
 let currentAccount;
+
+//checks if user credentials are correct and display the ui accordingly
 btnLogin.addEventListener('click', function (e) {
   e.preventDefault();
   currentAccount = accounts.find(
@@ -125,6 +142,8 @@ btnLogin.addEventListener('click', function (e) {
       acc.username === inputLoginUsername.value &&
       acc.pin === Number(inputLoginPin.value)
   );
+  //if credentials correct: display ui, remove focus from login form,
+  //display welcome message, updates all parameters to current user.
   if (currentAccount !== undefined) {
     containerApp.style.opacity = 100;
     inputLoginUsername.value = inputLoginPin.value = '';
@@ -133,12 +152,72 @@ btnLogin.addEventListener('click', function (e) {
     labelWelcome.textContent = `Good Evening ${
       currentAccount.owner.split(' ')[0]
     }!`;
-    displayBalance(currentAccount.movements);
-    displayMovements(currentAccount.movements);
-    displaySummary(currentAccount);
+    updateUI(currentAccount);
   }
 });
 
+//transfer money between accounts.
+btnTransfer.addEventListener('click', function (e) {
+  e.preventDefault();
+  const transferAmount = inputTransferAmount.value;
+  //finding account that user wants to transfer to.
+  const transferAcc = accounts.find(
+    acc => inputTransferTo.value === acc.username
+  );
+  //checking if account has enough balance to transfer, if the user is valid and if the transfered value is not negative
+  if (
+    transferAmount < currentAccount.balance &&
+    transferAcc !== undefined &&
+    transferAmount > 0 &&
+    currentAccount !== transferAcc
+  ) {
+    // updating movements for both account
+    currentAccount.movements.push(transferAmount * -1);
+    transferAcc.movements.push(transferAmount);
+    //updating the ui based on the changes to movements
+    updateUI(currentAccount);
+    //making the transfer ui empty and out of focus.
+    inputTransferAmount.value = inputTransferTo.value = '';
+    inputTransferAmount.blur();
+    inputTransferTo.blur();
+  }
+});
+
+//close account and hide UI
+btnClose.addEventListener('click', function (e) {
+  e.preventDefault();
+  const accountIndex = accounts.findIndex(
+    acc =>
+      inputCloseUsername.value == acc.username &&
+      Number(inputClosePin.value) === acc.pin
+  );
+  if (accountIndex !== -1) {
+    accounts.splice(accountIndex);
+    containerApp.style.opacity = 0;
+    labelWelcome.textContent = 'Log in to get started';
+    inputClosePin.value = inputCloseUsername.value = '';
+    inputClosePin.blur();
+    inputCloseUsername.blur();
+  }
+});
+
+//request loan.
+btnLoan.addEventListener('click', function (e) {
+  e.preventDefault();
+  const amount = Number(inputLoanAmount.value);
+  if (amount > 0 && currentAccount.movements.some(mov => mov >= amount * 0.1)) {
+    currentAccount.movements.push(amount);
+    updateUI(currentAccount);
+    inputLoanAmount.value = '';
+    inputLoanAmount.blur();
+  }
+});
+let sort = false;
+btnSort.addEventListener('click', function (e) {
+  e.preventDefault();
+  sort = sort ? false : true;
+  displayMovements(currentAccount.movements, sort);
+});
 /////////////////////////////////////////////////
 /////////////////////////////////////////////////
 // LECTURES
@@ -298,4 +377,27 @@ const calcAverageHumanAge2 = function (agesArr) {
 calcAverageHumanAge2(ages1);
 console.log('------------------');
 calcAverageHumanAge2(ages2);
+
+
+const accountMovements = accounts.map(acc => acc.movements);
+console.log(accountMovements.flat().reduce((acc, curr) => acc + curr));
+
+console.log(
+  accounts.flatMap(acc => acc.movements).reduce((acc, mov) => acc + mov, 0)
+);
+console.log(
+  [1, 7, 4, 2, 8, 10, 15].sort((a, b) => {
+    if (a > b) {
+      return 1;
+    }
+    if (a < b) {
+      return -1;
+    }
+  })
+);
+
+const movements = [200, 450, -400, 3000, -650, -130, 70, 1300];
+const stest = false;
+movements.sort((a, b) => (stest === true ? a - b : NaN));
+console.log(movements);
 */
