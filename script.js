@@ -159,14 +159,14 @@ btnLogin.addEventListener('click', function (e) {
 //transfer money between accounts.
 btnTransfer.addEventListener('click', function (e) {
   e.preventDefault();
-  const transferAmount = inputTransferAmount.value;
+  const transferAmount = Number(inputTransferAmount.value);
   //finding account that user wants to transfer to.
   const transferAcc = accounts.find(
     acc => inputTransferTo.value === acc.username
   );
   //checking if account has enough balance to transfer, if the user is valid and if the transfered value is not negative
   if (
-    transferAmount < currentAccount.balance &&
+    transferAmount <= currentAccount.balance &&
     transferAcc !== undefined &&
     transferAmount > 0 &&
     currentAccount !== transferAcc
